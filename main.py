@@ -1,7 +1,6 @@
 import argparse
-import torch
 
-from utils import preprocess_image, image_class, generate_fgsm_noise, apply_adversarial_noise, save_image
+from utils import preprocess_image, image_class, generate_adversarial_noise, apply_adversarial_noise, save_image
 from model_interface import load_model
 
 def main():
@@ -19,15 +18,16 @@ def main():
         print('Loaded Image:')
         image_class(image, model)
 
-        noise = generate_fgsm_noise(model, image, torch.tensor([args.target_class]), args.epsilon)
+        noise = generate_adversarial_noise(model, image, args.target_class, args.epsilon)
         adversarial_image = apply_adversarial_noise(image, noise)
-        print('Adverserial Image:')
+        print('Adversarial Image:')
         image_class(adversarial_image, model)
 
         save_image(adversarial_image, args.output_path)
 
     except Exception as e:
         print(f"An error occurred: {e}")
+
 
 if __name__ == "__main__":
     main()

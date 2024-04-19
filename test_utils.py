@@ -1,27 +1,25 @@
 import unittest
 import torch
+import torchvision.models as models
 
-from utils import generate_fgsm_noise, apply_adversarial_noise
-from model_interface import load_model
+from utils import preprocess_image, generate_adversarial_noise
 
-
-class TestAdversarialUtils(unittest.TestCase):
+class TestUtils(unittest.TestCase):
 
     def setUp(self):
-        self.model = load_model()
-        self.image = torch.rand((1, 3, 224, 224))  # Random image tensor
-        self.target_class = torch.tensor([3])  # Target class index
-        self.epsilon = 0.05
+        self.image_path = "./test/panda.png"
+        self.model = models.resnet18(pretrained=True).eval()
+        self.image = preprocess_image(self.image_path)
 
-    def test_generate_fgsm_noise(self):
-        noise = generate_fgsm_noise(self.model, self.image, self.target_class, self.epsilon)
-        self.assertIsNotNone(noise)
+    def test_preprocess_image(self):
+        self.assertEqual(self.image.shape, torch.Size([1, 3, 224, 224]))
 
-    def test_apply_adversarial_noise(self):
-        noise = generate_fgsm_noise(self.model, self.image, self.target_class, self.epsilon)
-        perturbed_image = apply_adversarial_noise(self.image, noise)
-        self.assertIsNotNone(perturbed_image)
+    def test_generate_adversarial_noise(self):
+        target_class = 242
+        epsilon = 0.05
+        noise = generate_adversarial_noise(self.model, self.image, target_class, epsilon)
+        self.assertEqual(noise.shape, torch.Size([1, 3, 224, 224]))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

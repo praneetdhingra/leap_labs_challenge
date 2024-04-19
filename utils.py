@@ -31,8 +31,6 @@ def image_class(image, model):
     Args:
         image: Image tensor.
         model: Model used for classification.
-
-    Returns:
     """
 
     # Load ImageNet class labels
@@ -48,26 +46,42 @@ def image_class(image, model):
     print(f"Predicted class label: {predicted_class_label}", '\n')
 
 
-def generate_fgsm_noise(model, image, target_class, epsilon):
-    """Generates adversarial noise using the Fast Gradient Sign Method (FGSM).
+def generate_adversarial_noise(model, image, target_class, epsilon, max_epochs=1000):
+    """Generates adversarial noise using the Fast Gradient Sign Method (FGSM)
+    iteratively.
 
     Args:
         model: The image classification model.
         image: The batched input image.
-        target_class: The desired misclassification target class.
+        target_class: The desired mis-classification target class.
         epsilon: The strength of the adversarial perturbation.
+        max_epochs: The iterations to run until the image is perturbed
+                    to the target class (default: 1000).
 
     Returns:
         torch.Tensor: The adversarial noise.
     """
 
-    image.requires_grad = True
-    output = model(image)
-    loss = torch.nn.CrossEntropyLoss()(output, target_class)
-    model.zero_grad()
-    loss.backward()
+    noise = torch.zeros_like(image, requires_grad=True)
+    optimizer = torch.optim.Adam([noise], lr=0.01)
 
-    return epsilon * image.grad.data.sign()
+    for epoch in range(max_epochs):
+        perturbed_image = torch.clamp(image + noise, 0, 1)
+
+        outputs = model(perturbed_image)
+        predicted_class = torch.argmax(outputs, dim=1).item()
+
+        if predicted_class == target_class:
+            break
+
+        loss = torch.nn.CrossEntropyLoss()(outputs, torch.tensor([target_class]))
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+
+        noise.data = torch.clamp(noise.data, -epsilon, epsilon)
+
+    return noise
 
 
 def apply_adversarial_noise(image, noise):
